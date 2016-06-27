@@ -50,7 +50,7 @@ public class ZMQSource<OUT> extends MultipleIdsMessageAcknowledgingSourceBase<OU
 	
 	public ZMQSource(ZMQConnectionConfig zmqConnectionConfig, String queueName,
 					DeserializationSchema<OUT> deserializationSchema) {
-			this(zmqConnectionConfig, queueName, false, deserializationSchema);
+		this(zmqConnectionConfig, queueName, false, deserializationSchema);
 	}
 
 	protected ZMQSource(ZMQConnectionConfig zmqConnectionConfig, String queueName,
