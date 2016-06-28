@@ -12,7 +12,7 @@
 
 package org.apache.flink.zeromq;
 
-import java.io.IOException;
+//import java.io.IOException;
 import java.util.List;
 
 import org.apache.flink.api.common.typeinfo.TypeInformation;
@@ -88,4 +88,5 @@ public class ZMQSource<OUT> extends MultipleIdsMessageAcknowledgingSourceBase<OU
 			throw new RuntimeException("Messages could not be acknowledged during checkpoint creation.", e);
 		}*/
 	}
+	
 }
