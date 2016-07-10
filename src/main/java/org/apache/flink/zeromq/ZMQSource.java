@@ -12,14 +12,22 @@
 
 package org.apache.flink.zeromq;
 
-//import java.io.IOException;
 import java.util.List;
 
+import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.source.MultipleIdsMessageAcknowledgingSourceBase;
+import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
 import org.apache.flink.streaming.util.serialization.DeserializationSchema;
+
 import org.apache.flink.zeromq.common.ZMQConnectionConfig;
+
+import org.zeromq.ZMQ;
+import org.zeromq.ZMQ.Context;
+import org.zeromq.ZMQ.Socket;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,11 +48,9 @@ public class ZMQSource<OUT> extends MultipleIdsMessageAcknowledgingSourceBase<OU
 	private final boolean usesCorrelationId;
 	protected DeserializationSchema<OUT> schema;
 
-	//protected transient Connection connection;
-	//protected transient Channel channel;
-	//protected transient QueueingConsumer consumer;
-
 	protected transient boolean autoAck;
+	protected transient Context context;
+	protected transient Socket frontend;
 
 	private transient volatile boolean running;
 	
@@ -61,14 +67,48 @@ public class ZMQSource<OUT> extends MultipleIdsMessageAcknowledgingSourceBase<OU
 		this.usesCorrelationId = usesCorrelationId;
 		this.schema = deserializationSchema;
 	}
+	
+	@Override
+	public void open(Configuration config) throws Exception {
+		super.open(config);
+		
+		//  Prepare our context and sockets
+		context = ZMQ.context(1);
+
+		//  Socket facing clients
+		frontend = context.socket(ZMQ.PULL);
+		frontend.bind(zmqConnectionConfig.getUri());
+
+		RuntimeContext runtimeContext = getRuntimeContext();
+		if (runtimeContext instanceof StreamingRuntimeContext
+				&& ((StreamingRuntimeContext) runtimeContext).isCheckpointingEnabled()) {
+			autoAck = false;
+			// enables transaction mode
+			//channel.txSelect();
+		} else {
+			autoAck = true;
+		}
+
+		LOG.debug("Starting ZeroMQ source with autoAck status: " + autoAck);
+		LOG.debug("Starting ZeroMQ source with uri: " + zmqConnectionConfig.getUri());
+		//channel.basicConsume(queueName, autoAck, consumer);
+		running = true;
+	}
 
 	public void run(SourceContext<OUT> ctx) throws Exception {
 		while (running) {
 			//TODO Logic here
+			//  Wait for start of batch
+			String string = new String(frontend.recv(0)).trim();
+			//TODO Use deserializer
+			OUT result = (OUT) string;
+			//OUT result = schema.deserialize(delivery.getBody());
+			ctx.collect(result);
 		}
 	}
 
 	public void cancel() {
+		//TODO Complete cancel
 		running = false;
 	}
 

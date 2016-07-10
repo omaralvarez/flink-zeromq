@@ -30,12 +30,13 @@ public class ZMQConnectionConfig implements Serializable {
 	private Integer port;
 	private String uri;
 
-	private ZMQConnectionConfig(String host, Integer port) {
+	public ZMQConnectionConfig(String host, Integer port) {
 		this.host = host;
 		this.port = port;
+		this.uri = "tcp://" + host + ":" + port;
 	}
 
-	private ZMQConnectionConfig(String uri) {
+	public ZMQConnectionConfig(String uri) {
 		this.uri = uri;
 	}
 

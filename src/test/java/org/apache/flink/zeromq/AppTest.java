@@ -12,6 +12,15 @@
 
 package org.apache.flink.zeromq;
 
+import java.io.IOException;
+
+import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.typeutils.TypeExtractor;
+import org.apache.flink.streaming.api.datastream.DataStreamSink;
+import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.util.serialization.DeserializationSchema;
+import org.apache.flink.zeromq.common.ZMQConnectionConfig;
+
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
@@ -45,6 +54,35 @@ public class AppTest
      */
     public void testApp()
     {
+    	// set up the execution environment
+		final StreamExecutionEnvironment env = StreamExecutionEnvironment
+				.getExecutionEnvironment();
+    	DataStreamSink<String> text = env
+    			.addSource(new ZMQSource<String>(new ZMQConnectionConfig("localhost", 9000), "queuename", new StringDeserializationScheme()))
+    			.name("Queue")
+				.print();
+    	
         assertTrue( true );
     }
+    
+    private static class StringDeserializationScheme implements DeserializationSchema<String> {
+
+		public String deserialize(byte[] message) throws IOException {
+			try {
+				// wait a bit to not cause too much cpu load
+				Thread.sleep(1);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			return new String(message);
+		}
+
+		public boolean isEndOfStream(String nextElement) {
+			return false;
+		}
+
+		public TypeInformation<String> getProducedType() {
+			return TypeExtractor.getForClass(String.class);
+		}
+	}
 }
